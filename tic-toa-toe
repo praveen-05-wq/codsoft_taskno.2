@@ -1,0 +1,70 @@
+import pygame, sys, math
+pygame.init()
+
+W, H = 300, 300
+WHITE, BLACK, BLUE, RED = (255,255,255), (0,0,0), (10,10,255), (255,0,0)
+screen = pygame.display.set_mode((W, H))
+font = pygame.font.SysFont(None, 80)
+board = [" "] * 9
+
+def draw():
+    screen.fill(WHITE)
+    for i in range(1, 3):
+        pygame.draw.line(screen, BLUE, (i*100, 0), (i*100, H), 5)
+        pygame.draw.line(screen, BLUE, (0, i*100), (W, i*100), 5)
+    for i, mark in enumerate(board):
+        if mark != " ":
+            x = (i % 3) * 100 + 25
+            y = (i // 3) * 100 + 10  # FIXED here
+            text = font.render(mark, True, RED if mark == "X" else BLUE)
+            screen.blit(text, (x, y))
+    pygame.display.update()
+
+def winner(p): return any(all(board[i] == p for i in line) for line in [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])
+def is_draw(): return " " not in board
+def end_game(msg): screen.fill(WHITE); screen.blit(pygame.font.SysFont(None, 50).render(msg, True, BLACK), (50,130)); pygame.display.update(); pygame.time.wait(2000)
+
+def minimax(ai):
+    if winner("O"): return 1
+    if winner("X"): return -1
+    if is_draw(): return 0
+    best = -math.inf if ai else math.inf
+    for i in range(9):
+        if board[i] == " ":
+            board[i] = "O" if ai else "X"
+            score = minimax(not ai)
+            board[i] = " "
+            best = max(best, score) if ai else min(best, score)
+    return best
+
+def ai_move():
+    best, move = -math.inf, -1
+    for i in range(9):
+        if board[i] == " ":
+            board[i] = "O"
+            score = minimax(False)
+            board[i] = " "
+            if score > best:
+                best, move = score, i
+    board[move] = "O"
+
+player_turn, running = True, True
+draw()
+
+while running:
+    for e in pygame.event.get():
+        if e.type == pygame.QUIT: running = False
+        elif e.type == pygame.MOUSEBUTTONDOWN and player_turn:
+            idx = (e.pos[1] // 100) * 3 + (e.pos[0] // 100)
+            if board[idx] == " ":
+                board[idx], player_turn = "X", False
+    if not player_turn:
+        if not winner("X") and not is_draw():
+            ai_move()
+        player_turn = True
+    draw()
+    if winner("X"): end_game("Surya Wins! "); break
+    if winner("O"): end_game("Lash Wins! "); break
+    if is_draw():  end_game("It's a Draw! "); break
+
+pygame.quit(); sys.exit()
